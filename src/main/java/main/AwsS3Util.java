@@ -1,10 +1,10 @@
 package main;
 
 import java.math.BigInteger;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -65,11 +65,11 @@ public class AwsS3Util {
 
     parser.addArgument("--customer.id").help("Customer id").type(String.class).required(true);
 
-    parser.addArgument("--from.date")
+    parser.addArgument("--from")
         .help("Specify the date after which records are needed. Format should be -> yyyy-mm-dd")
         .type(String.class).required(false);
 
-    parser.addArgument("--to.date")
+    parser.addArgument("--to")
         .help("Specify the date upto which records are needed. Format should be -> yyyy-mm-dd")
         .type(String.class).required(false);
 
@@ -82,16 +82,16 @@ public class AwsS3Util {
     }
     env = ns.getString("env");
     String customerId = ns.getString("customer.id");
-    String from = ns.getString("from.date");
-    String to = ns.getString("to.date");
+    String from = ns.getString("from");
+    String to = ns.getString("to");
 
     AwsS3Util awsS3Util = new AwsS3Util();
     Optional<BigInteger> customerStorage = Optional.empty();
     if (from == null && to == null) {
       customerStorage = awsS3Util.getS3Storage(customerId);
     } else {
-      DateTime fromDate = new DateTime(Instant.EPOCH);
-      DateTime toDate = new DateTime(Instant.now());
+      DateTime fromDate = new DateTime(0, DateTimeZone.UTC);
+      DateTime toDate = new DateTime(DateTimeZone.UTC);
       if (from != null)
         fromDate = DateTime.parse(from);
       if (to != null)
