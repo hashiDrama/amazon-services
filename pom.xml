@@ -12,6 +12,13 @@
 			<artifactId>aws-java-sdk</artifactId>
 			<version>1.11.433</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/net.sourceforge.argparse4j/argparse4j -->
+		<dependency>
+			<groupId>net.sourceforge.argparse4j</groupId>
+			<artifactId>argparse4j</artifactId>
+			<version>0.2.0</version>
+		</dependency>
+
 	</dependencies>
 	<build>
 		<plugins>
