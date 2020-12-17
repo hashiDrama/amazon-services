@@ -7,6 +7,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -30,7 +31,16 @@ public class AwsS3Util {
   public Optional<BigInteger> getS3Storage(String customerId) {
     AmazonS3 s3 = getAwsS3Interface();
     String bucketName = "tala-" + env + "-archive";
-    List<S3ObjectSummary> objects = s3.listObjectsV2(bucketName).getObjectSummaries();
+    ObjectListing ob = s3.listObjects(bucketName);
+    List<S3ObjectSummary> objects = ob.getObjectSummaries();
+    while (ob.isTruncated()) {
+      ob = s3.listNextBatchOfObjects(ob);
+      objects.addAll(ob.getObjectSummaries());
+    }
+    objects.stream()
+        .filter(
+            object -> object.getKey().contains("cassandra") && object.getKey().contains(customerId))
+        .map(S3ObjectSummary::getKey).forEach(System.out::println);
     long storage = objects.parallelStream()
         .filter(
             object -> object.getKey().contains("cassandra") && object.getKey().contains(customerId))
@@ -42,13 +52,19 @@ public class AwsS3Util {
       DateTime to) {
     AmazonS3 s3 = getAwsS3Interface();
     String bucketName = "tala-" + env + "-archive";
-    List<S3ObjectSummary> objects = s3.listObjectsV2(bucketName).getObjectSummaries();
+    ObjectListing ob = s3.listObjects(bucketName);
+    List<S3ObjectSummary> objects = ob.getObjectSummaries();
+    while (ob.isTruncated()) {
+      ob = s3.listNextBatchOfObjects(ob);
+      objects.addAll(ob.getObjectSummaries());
+    }
     long storage = objects.parallelStream().filter(object -> {
       if (object.getKey().contains("cassandra") && object.getKey().contains(customerId)) {
         DateTime date = DateTime.parse(
             object.getKey().substring(object.getKey().indexOf("cassandra/") + CASSANDRA.length(),
                 object.getKey().indexOf(customerId) - 1));
-        if (date.isAfter(from.toInstant()) && date.isBefore(to.toInstant()))
+        if ((date.isEqual(from.toInstant()) || date.isAfter(from.toInstant()))
+            && (date.isEqual(to.toInstant()) || date.isBefore(to.toInstant())))
           return true;
       }
       return false;
