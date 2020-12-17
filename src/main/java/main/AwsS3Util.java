@@ -3,6 +3,7 @@ package main;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import com.amazonaws.services.s3.AmazonS3;
@@ -37,14 +38,11 @@ public class AwsS3Util {
       ob = s3.listNextBatchOfObjects(ob);
       objects.addAll(ob.getObjectSummaries());
     }
-    objects.stream()
+    List<S3ObjectSummary> filteredData = objects.stream()
         .filter(
             object -> object.getKey().contains("cassandra") && object.getKey().contains(customerId))
-        .map(S3ObjectSummary::getKey).forEach(System.out::println);
-    long storage = objects.parallelStream()
-        .filter(
-            object -> object.getKey().contains("cassandra") && object.getKey().contains(customerId))
-        .mapToLong(S3ObjectSummary::getSize).sum();
+        .collect(Collectors.toList());
+    long storage = filteredData.parallelStream().mapToLong(S3ObjectSummary::getSize).sum();
     return Optional.ofNullable(BigInteger.valueOf(storage));
   }
 
@@ -58,7 +56,7 @@ public class AwsS3Util {
       ob = s3.listNextBatchOfObjects(ob);
       objects.addAll(ob.getObjectSummaries());
     }
-    long storage = objects.parallelStream().filter(object -> {
+    List<S3ObjectSummary> filteredData = objects.parallelStream().filter(object -> {
       if (object.getKey().contains("cassandra") && object.getKey().contains(customerId)) {
         DateTime date = DateTime.parse(
             object.getKey().substring(object.getKey().indexOf("cassandra/") + CASSANDRA.length(),
@@ -68,7 +66,8 @@ public class AwsS3Util {
           return true;
       }
       return false;
-    }).mapToLong(S3ObjectSummary::getSize).sum();
+    }).collect(Collectors.toList());
+    long storage = filteredData.stream().mapToLong(S3ObjectSummary::getSize).sum();
     return Optional.ofNullable(BigInteger.valueOf(storage));
   }
 
